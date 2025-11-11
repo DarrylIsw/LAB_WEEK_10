@@ -6,13 +6,18 @@ import androidx.lifecycle.ViewModel
 
 class TotalViewModel : ViewModel() {
 
-    // Backing property (private MutableLiveData)
-    private val _total = MutableLiveData<Int>().apply { value = 0 }
+    // Backing property (mutable internal, immutable external)
+    private val _total = MutableLiveData<Int>()
+    val total: LiveData<Int> get() = _total
 
-    // Public immutable LiveData
-    val total: LiveData<Int> = _total
+    init {
+        // Initialize LiveData safely
+        _total.value = 0
+    }
 
+    // Increment the total safely on the main thread
     fun incrementTotal() {
-        _total.value = (_total.value ?: 0) + 1
+        val current = _total.value ?: 0
+        _total.value = current + 1
     }
 }

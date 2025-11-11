@@ -8,11 +8,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.observe // ✅ modern extension
 import com.example.lab_week_10.viewmodels.TotalViewModel
 
 class MainActivity : AppCompatActivity() {
 
+    // ViewModel initialized lazily
     private val viewModel: TotalViewModel by lazy {
         ViewModelProvider(this)[TotalViewModel::class.java]
     }
@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Optional: handle system insets for better layout fit
+        // Optional: handle window insets
         val mainView = findViewById<TextView>(R.id.text_total).rootView
         ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -39,11 +39,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun prepareViewModel() {
-        // ✅ observe using modern syntax (no Observer{})
+        // Observe LiveData changes
         viewModel.total.observe(this) { total ->
             updateText(total)
         }
 
+        // Handle button click
         findViewById<Button>(R.id.button_increment).setOnClickListener {
             viewModel.incrementTotal()
         }

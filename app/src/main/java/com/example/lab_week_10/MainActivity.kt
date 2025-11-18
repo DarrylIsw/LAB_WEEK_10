@@ -3,22 +3,25 @@ package com.example.lab_week_10
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import com.example.lab_week_10.database.Total
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.database.TotalDatabase
 import com.example.lab_week_10.viewmodels.TotalViewModel
+import kotlinx.coroutines.launch
+import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
-    // Lazily create database only when needed
     private val db by lazy { prepareDatabase() }
 
-    // Lazily create ViewModel
     private val viewModel: TotalViewModel by lazy {
         ViewModelProvider(this)[TotalViewModel::class.java]
     }
@@ -28,7 +31,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Optional: handle system bars for fullscreen layouts
         val mainView = findViewById<TextView>(R.id.text_total).rootView
         ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -36,60 +38,99 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Initialize DB data and ViewModel observation
         initializeValueFromDatabase()
         prepareViewModel()
     }
 
-    // --- UI update method
+    // ------------------------------------------------------------
+    // UI
+    // ------------------------------------------------------------
     private fun updateText(total: Int) {
         findViewById<TextView>(R.id.text_total).text =
             getString(R.string.text_total, total)
     }
 
-    // --- ViewModel observer and button logic
     private fun prepareViewModel() {
-        // Observe LiveData
         viewModel.total.observe(this) { total ->
             updateText(total)
         }
 
-        // Increment total on button click
         findViewById<Button>(R.id.button_increment).setOnClickListener {
             viewModel.incrementTotal()
         }
     }
 
-    // --- Database initialization
+    // ------------------------------------------------------------
+    // DATABASE
+    // ------------------------------------------------------------
     private fun prepareDatabase(): TotalDatabase {
         return Room.databaseBuilder(
             applicationContext,
             TotalDatabase::class.java,
             "total-database"
         )
-            // For simplicity only; in production use background threads!
-            .allowMainThreadQueries()
+            .allowMainThreadQueries() // simple for classroom assignment
             .build()
     }
 
-    // --- Initialize value from DB
     private fun initializeValueFromDatabase() {
-        val totalRecord = db.totalDao().getTotal(ID)
-        if (totalRecord == null) {
-            // Insert if not exists
-            db.totalDao().insert(Total(id = ID, total = 0))
+        val dao = db.totalDao()
+        val existing = dao.getTotal()
+
+        if (existing == null) {
+            // Create initial row with date
+            dao.insert(
+                Total(
+                    id = ID,
+                    total = TotalObject(
+                        value = 0,
+                        date = Date().toString()
+                    )
+                )
+            )
             viewModel.setTotal(0)
         } else {
-            // Load existing value
-            viewModel.setTotal(totalRecord.total)
+            viewModel.setTotal(existing.total.value)
         }
     }
 
-    // --- Save value back to DB when app closes
+    // ------------------------------------------------------------
+    // LIFECYCLE: update date when app pauses
+    // ------------------------------------------------------------
     override fun onPause() {
         super.onPause()
-        val currentTotal = viewModel.total.value ?: 0
-        db.totalDao().update(Total(ID, currentTotal))
+
+        val dao = db.totalDao()
+        val current = dao.getTotal()
+
+        if (current != null) {
+            val updated = Total(
+                id = current.id,
+                total = TotalObject(
+                    value = current.total.value,
+                    date = Date().toString()
+                )
+            )
+            dao.update(updated)
+        }
+    }
+
+    // ------------------------------------------------------------
+    // LIFECYCLE: show toast on start
+    // ------------------------------------------------------------
+    override fun onStart() {
+        super.onStart()
+
+        val dao = db.totalDao()
+        val current = dao.getTotal()
+
+        current?.let {
+            Toast.makeText(
+                this,
+                "Last updated: ${it.total.date}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     companion object {

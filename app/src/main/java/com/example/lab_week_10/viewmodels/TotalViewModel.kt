@@ -20,4 +20,10 @@ class TotalViewModel : ViewModel() {
         val current = _total.value ?: 0
         _total.value = current + 1
     }
+
+    // TotalViewModel.kt
+    fun setTotal(value: Int) {
+        _total.value = value
+    }
+
 }

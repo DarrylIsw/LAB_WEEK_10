@@ -46,6 +46,11 @@ class FirstFragment : Fragment() {
         }
     }
 
+    //Set new total value
+    fun setTotal(newTotal: Int) {
+        viewModel.setTotal(newTotal)
+    }
+
     companion object {
         fun newInstance(param1: String, param2: String) =
             FirstFragment().apply {
